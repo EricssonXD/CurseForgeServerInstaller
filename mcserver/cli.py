@@ -11,7 +11,12 @@ from .curseforge import CurseForgeClient
 from .config import AppConfig, config_path
 from .errors import MissingApiKeyError, UserFacingError
 from .download import download_to
-from .fs_ops import detect_pack_root, extract_zip, copy_tree_contents, update_from_pack_root
+from .fs_ops import (
+    detect_pack_root,
+    extract_zip,
+    copy_tree_contents,
+    update_from_pack_root,
+)
 from .state import ServerState, utc_now_iso
 
 
@@ -46,7 +51,9 @@ def _resolve_pack_id(
         elif _looks_like_pack_id(source):
             arg_pack_id = int(source)
         else:
-            raise UserFacingError("SOURCE must be a digits-only modpack id or a CurseForge modpack URL.")
+            raise UserFacingError(
+                "SOURCE must be a digits-only modpack id or a CurseForge modpack URL."
+            )
 
     if saved_pack_id and arg_pack_id and saved_pack_id != arg_pack_id:
         if use_saved and use_arg:
@@ -60,7 +67,9 @@ def _resolve_pack_id(
                 f"This folder is configured for packId={saved_pack_id} but you provided {arg_pack_id}. "
                 "Re-run with --use-saved or --use-arg (or drop --no-prompt)."
             )
-        print(f"This folder is configured for packId={saved_pack_id} but you provided {arg_pack_id}.")
+        print(
+            f"This folder is configured for packId={saved_pack_id} but you provided {arg_pack_id}."
+        )
         choice = input("Use [s]aved or [a]rg? (s/a): ").strip().lower()
         if choice.startswith("s"):
             return int(saved_pack_id), saved
@@ -74,7 +83,9 @@ def _resolve_pack_id(
     if saved_pack_id is not None:
         return int(saved_pack_id), saved
 
-    raise UserFacingError("No SOURCE provided and no saved packId found in .mcserver/state.json.")
+    raise UserFacingError(
+        "No SOURCE provided and no saved packId found in .mcserver/state.json."
+    )
 
 
 def cmd_cf_resolve(args: argparse.Namespace) -> int:
@@ -86,7 +97,9 @@ def cmd_cf_resolve(args: argparse.Namespace) -> int:
 
 def cmd_cf_search(args: argparse.Namespace) -> int:
     cf = CurseForgeClient()
-    results = cf.search_modpacks(query=args.query, game_version=args.game_version, page_size=args.limit)
+    results = cf.search_modpacks(
+        query=args.query, game_version=args.game_version, page_size=args.limit
+    )
     for item in results:
         print(f"{item.get('id')}\t{item.get('name')}")
     return 0
@@ -98,13 +111,17 @@ def cmd_cf_files(args: argparse.Namespace) -> int:
     for f in files[: args.limit]:
         if args.server_only and not (f.is_server_pack or f.server_pack_file_id):
             continue
-        print(f"{f.id}\t{f.file_date}\t{f.display_name}\tserverPack={f.is_server_pack}\tserverPackFileId={f.server_pack_file_id}")
+        print(
+            f"{f.id}\t{f.file_date}\t{f.display_name}\tserverPack={f.is_server_pack}\tserverPackFileId={f.server_pack_file_id}"
+        )
     return 0
 
 
 def cmd_cf_download_url(args: argparse.Namespace) -> int:
     cf = CurseForgeClient()
-    url, server_file_id, display_name = cf.resolve_server_pack_download(int(args.pack_id), file_id=args.file_id)
+    url, server_file_id, display_name = cf.resolve_server_pack_download(
+        int(args.pack_id), file_id=args.file_id
+    )
     if args.verbose:
         print(f"serverPackFileId={server_file_id}\tdisplayName={display_name}")
     print(url)
@@ -124,12 +141,19 @@ def _install_or_update(
 ) -> int:
     cf = CurseForgeClient()
     pack_id, saved_state = _resolve_pack_id(
-        cf, source=source, server_dir=server_dir, use_saved=use_saved, use_arg=use_arg, no_prompt=no_prompt
+        cf,
+        source=source,
+        server_dir=server_dir,
+        use_saved=use_saved,
+        use_arg=use_arg,
+        no_prompt=no_prompt,
     )
 
     mode_update = _is_server_dir(server_dir)
 
-    url, server_file_id, display_name = cf.resolve_server_pack_download(pack_id, file_id=file_id)
+    url, server_file_id, display_name = cf.resolve_server_pack_download(
+        pack_id, file_id=file_id
+    )
 
     if check_only and mode_update:
         installed = saved_state.installed_file_id if saved_state else None
@@ -216,7 +240,9 @@ def cmd_config_set_api_key(args: argparse.Namespace) -> int:
     api_key = args.api_key
     if not api_key:
         if not sys.stdin.isatty():
-            raise UserFacingError("No API key provided. Pass it as an argument or run interactively.")
+            raise UserFacingError(
+                "No API key provided. Pass it as an argument or run interactively."
+            )
         api_key = getpass.getpass("CurseForge API key: ").strip()
     if not api_key:
         raise UserFacingError("API key cannot be empty.")
@@ -238,7 +264,9 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_install = sub.add_parser("install", help="Smart install/update in a directory")
-    p_install.add_argument("source", nargs="?", help="Modpack ID (digits) or CurseForge modpack URL")
+    p_install.add_argument(
+        "source", nargs="?", help="Modpack ID (digits) or CurseForge modpack URL"
+    )
     p_install.add_argument("--dir", default=".")
     p_install.add_argument("--file-id", type=int, default=None)
     p_install.add_argument("--accept-eula", action="store_true")
@@ -248,7 +276,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_install.set_defaults(func=cmd_install)
 
     p_update = sub.add_parser("update", help="Alias of install (interchangeable)")
-    p_update.add_argument("source", nargs="?", help="Modpack ID (digits) or CurseForge modpack URL")
+    p_update.add_argument(
+        "source", nargs="?", help="Modpack ID (digits) or CurseForge modpack URL"
+    )
     p_update.add_argument("--dir", default=".")
     p_update.add_argument("--file-id", type=int, default=None)
     p_update.add_argument("--accept-eula", action="store_true")
@@ -281,17 +311,25 @@ def build_parser() -> argparse.ArgumentParser:
     p_cf_files.add_argument("--limit", type=int, default=20)
     p_cf_files.set_defaults(func=cmd_cf_files)
 
-    p_cf_dl = cf_sub.add_parser("download-url", help="Resolve direct download URL for server pack")
+    p_cf_dl = cf_sub.add_parser(
+        "download-url", help="Resolve direct download URL for server pack"
+    )
     p_cf_dl.add_argument("pack_id")
     p_cf_dl.add_argument("--file-id", type=int, default=None)
     p_cf_dl.add_argument("--verbose", action="store_true")
     p_cf_dl.set_defaults(func=cmd_cf_download_url)
 
-    p_config = sub.add_parser("config", help="Persist and inspect local mcserver config")
+    p_config = sub.add_parser(
+        "config", help="Persist and inspect local mcserver config"
+    )
     cfg_sub = p_config.add_subparsers(dest="config_cmd", required=True)
 
-    p_cfg_set = cfg_sub.add_parser("set-api-key", help="Save CurseForge API key to config file")
-    p_cfg_set.add_argument("api_key", nargs="?", help="If omitted, you will be prompted")
+    p_cfg_set = cfg_sub.add_parser(
+        "set-api-key", help="Save CurseForge API key to config file"
+    )
+    p_cfg_set.add_argument(
+        "api_key", nargs="?", help="If omitted, you will be prompted"
+    )
     p_cfg_set.set_defaults(func=cmd_config_set_api_key)
 
     p_cfg_path = cfg_sub.add_parser("path", help="Print the config file path")

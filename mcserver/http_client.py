@@ -48,7 +48,11 @@ def http_get_json(
         try:
             with urlopen(request, timeout=timeout_s) as resp:
                 content = resp.read()
-                http_resp = HttpResponse(status=getattr(resp, "status", 200), headers=resp.headers, content=content)
+                http_resp = HttpResponse(
+                    status=getattr(resp, "status", 200),
+                    headers=resp.headers,
+                    content=content,
+                )
             return http_resp.json()
         except Exception as exc:  # pragma: no cover
             last_exc = exc

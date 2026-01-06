@@ -12,7 +12,12 @@ STATE_FILENAME = "state.json"
 
 
 def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return (
+        datetime.now(timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z")
+    )
 
 
 @dataclass
@@ -50,4 +55,6 @@ class ServerState:
             "channel": self.channel,
             "lastUpdatedAt": self.last_updated_at or utc_now_iso(),
         }
-        path.write_text(json.dumps(payload, indent=2, sort_keys=False) + "\n", encoding="utf-8")
+        path.write_text(
+            json.dumps(payload, indent=2, sort_keys=False) + "\n", encoding="utf-8"
+        )

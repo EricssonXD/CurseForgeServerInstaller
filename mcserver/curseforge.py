@@ -26,7 +26,9 @@ class CurseForgeClient:
 
     def __init__(self, api_key: Optional[str] = None):
         cfg = AppConfig.load()
-        self.api_key = api_key or os.environ.get("CURSEFORGE_API_KEY") or cfg.curseforge_api_key
+        self.api_key = (
+            api_key or os.environ.get("CURSEFORGE_API_KEY") or cfg.curseforge_api_key
+        )
         if not self.api_key:
             raise MissingApiKeyError(
                 "Missing CurseForge API key. Set CURSEFORGE_API_KEY (quote it!) or run 'mcserver config set-api-key'."
@@ -43,7 +45,9 @@ class CurseForgeClient:
                     "  export CURSEFORGE_API_KEY='...'\n"
                     "Or persist it with: mcserver config set-api-key '...'."
                 )
-            raise UserFacingError(f"CurseForge API request failed: HTTP {e.code} {e.reason}")
+            raise UserFacingError(
+                f"CurseForge API request failed: HTTP {e.code} {e.reason}"
+            )
 
     def _headers(self) -> Dict[str, str]:
         return {"Accept": "application/json", "x-api-key": self.api_key}
@@ -80,7 +84,9 @@ class CurseForgeClient:
     def resolve_pack_id_from_url(self, url: str) -> int:
         match = re.search(r"/modpacks/([^/?#]+)", url)
         if not match:
-            raise UserFacingError("Invalid CurseForge modpack URL (expected /minecraft/modpacks/<slug>).")
+            raise UserFacingError(
+                "Invalid CurseForge modpack URL (expected /minecraft/modpacks/<slug>)."
+            )
         slug = match.group(1)
         query = slug.replace("-", " ")
         results = self.search_modpacks(query=query, page_size=5)
@@ -136,14 +142,22 @@ class CurseForgeClient:
         files.sort(key=lambda f: f.file_date, reverse=True)
         newest = files[0]
         if newest.server_pack_file_id:
-            return int(newest.server_pack_file_id), newest.display_name, newest.file_date
+            return (
+                int(newest.server_pack_file_id),
+                newest.display_name,
+                newest.file_date,
+            )
 
         raise UserFacingError("No server pack found for this modpack.")
 
-    def resolve_server_pack_download(self, pack_id: int, *, file_id: Optional[int] = None) -> Tuple[str, int, str]:
+    def resolve_server_pack_download(
+        self, pack_id: int, *, file_id: Optional[int] = None
+    ) -> Tuple[str, int, str]:
         """Returns (download_url, server_pack_file_id, display_name)."""
         if file_id is None:
-            server_file_id, display_name, _file_date = self.choose_latest_server_pack(pack_id)
+            server_file_id, display_name, _file_date = self.choose_latest_server_pack(
+                pack_id
+            )
         else:
             # User provided a file id. It might be a server pack or a normal file.
             # We resolve it by scanning for an exact id match; if it's not a server pack
@@ -151,14 +165,18 @@ class CurseForgeClient:
             files = self.list_files(pack_id)
             match = next((f for f in files if f.id == file_id), None)
             if not match:
-                raise UserFacingError(f"File id {file_id} not found for pack {pack_id}.")
+                raise UserFacingError(
+                    f"File id {file_id} not found for pack {pack_id}."
+                )
             display_name = match.display_name
             if match.is_server_pack:
                 server_file_id = match.id
             elif match.server_pack_file_id:
                 server_file_id = int(match.server_pack_file_id)
             else:
-                raise UserFacingError("Selected file does not have an associated server pack.")
+                raise UserFacingError(
+                    "Selected file does not have an associated server pack."
+                )
 
         url = self.get_download_url(pack_id, server_file_id)
         return url, int(server_file_id), str(display_name)
