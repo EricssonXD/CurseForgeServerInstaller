@@ -8,3 +8,7 @@ class UserFacingError(McServerError):
 
 class MissingApiKeyError(UserFacingError):
     pass
+
+
+class InvalidApiKeyError(UserFacingError):
+    pass

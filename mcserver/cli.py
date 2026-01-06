@@ -8,8 +8,8 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 from .curseforge import CurseForgeClient
-from .config import AppConfig, config_path
-from .errors import MissingApiKeyError, UserFacingError
+from .config import AppConfig, config_path, mask_secret
+from .errors import InvalidApiKeyError, MissingApiKeyError, UserFacingError
 from .download import download_to
 from .fs_ops import (
     detect_pack_root,
@@ -30,6 +30,39 @@ def _looks_like_pack_id(value: str) -> bool:
 
 def _is_server_dir(server_dir: Path) -> bool:
     return (server_dir / "server.properties").exists()
+
+
+def _get_cf_client(*, allow_prompt: bool) -> CurseForgeClient:
+    def prompt_and_save_key() -> None:
+        api_key = getpass.getpass("CurseForge API key (will be saved): ").strip()
+        if not api_key:
+            raise UserFacingError("API key cannot be empty.")
+        cfg = AppConfig.load()
+        cfg.curseforge_api_key = api_key
+        cfg.save()
+        print(f"Saved API key to {config_path()}")
+
+    # Try once with existing config.
+    try:
+        cf = CurseForgeClient()
+    except MissingApiKeyError:
+        if not allow_prompt or not sys.stdin.isatty():
+            raise
+        prompt_and_save_key()
+        cf = CurseForgeClient()
+
+    # Validate key early so we can reprompt before doing work.
+    try:
+        cf.search_modpacks(query="a", page_size=1)
+    except InvalidApiKeyError:
+        if not allow_prompt or not sys.stdin.isatty():
+            raise
+        print("Saved API key appears invalid; please re-enter it.")
+        prompt_and_save_key()
+        cf = CurseForgeClient()
+        cf.search_modpacks(query="a", page_size=1)
+
+    return cf
 
 
 def _resolve_pack_id(
@@ -89,14 +122,14 @@ def _resolve_pack_id(
 
 
 def cmd_cf_resolve(args: argparse.Namespace) -> int:
-    cf = CurseForgeClient()
+    cf = _get_cf_client(allow_prompt=True)
     pack_id = cf.resolve_pack_id_from_url(args.url)
     print(pack_id)
     return 0
 
 
 def cmd_cf_search(args: argparse.Namespace) -> int:
-    cf = CurseForgeClient()
+    cf = _get_cf_client(allow_prompt=True)
     results = cf.search_modpacks(
         query=args.query, game_version=args.game_version, page_size=args.limit
     )
@@ -106,7 +139,7 @@ def cmd_cf_search(args: argparse.Namespace) -> int:
 
 
 def cmd_cf_files(args: argparse.Namespace) -> int:
-    cf = CurseForgeClient()
+    cf = _get_cf_client(allow_prompt=True)
     files = cf.list_files(int(args.pack_id))
     for f in files[: args.limit]:
         if args.server_only and not (f.is_server_pack or f.server_pack_file_id):
@@ -118,7 +151,7 @@ def cmd_cf_files(args: argparse.Namespace) -> int:
 
 
 def cmd_cf_download_url(args: argparse.Namespace) -> int:
-    cf = CurseForgeClient()
+    cf = _get_cf_client(allow_prompt=True)
     url, server_file_id, display_name = cf.resolve_server_pack_download(
         int(args.pack_id), file_id=args.file_id
     )
@@ -139,7 +172,7 @@ def _install_or_update(
     no_prompt: bool,
     check_only: bool,
 ) -> int:
-    cf = CurseForgeClient()
+    cf = _get_cf_client(allow_prompt=True)
     pack_id, saved_state = _resolve_pack_id(
         cf,
         source=source,
@@ -150,6 +183,12 @@ def _install_or_update(
     )
 
     mode_update = _is_server_dir(server_dir)
+
+    mode_update = _is_server_dir(server_dir)
+    mode = "update" if mode_update else "install"
+    print(f"Target directory: {server_dir}")
+    print(f"Mode: {mode}")
+    print(f"Resolving server pack for packId={pack_id}...")
 
     url, server_file_id, display_name = cf.resolve_server_pack_download(
         pack_id, file_id=file_id
@@ -169,20 +208,27 @@ def _install_or_update(
         extracted = tmp_path / "extracted"
         extracted.mkdir(parents=True, exist_ok=True)
 
-        print(f"Downloading server pack: {display_name}")
-        download_to(url, zip_path)
+        print(f"Server pack: {display_name} (fileId={server_file_id})")
+        download_to(url, zip_path, label="Downloading server pack")
+        print("Extracting...")
         extract_zip(zip_path, extracted)
         pack_root = detect_pack_root(extracted)
+        print(f"Detected pack root: {pack_root}")
 
         if mode_update:
             # Safety check already implied by mode_update
+            print(
+                "Applying update (replacing modpack folders, preserving world/server config)..."
+            )
             update_from_pack_root(pack_root, server_dir)
             print("Update complete.")
         else:
+            print("Installing into target directory...")
             copy_tree_contents(pack_root, server_dir)
             print("Install complete.")
 
     if accept_eula:
+        print("Writing eula.txt (eula=true)...")
         (server_dir / "eula.txt").write_text("eula=true\n", encoding="utf-8")
 
     new_state = saved_state or ServerState()
@@ -191,6 +237,7 @@ def _install_or_update(
     new_state.installed_display_name = display_name
     new_state.last_updated_at = utc_now_iso()
     new_state.save(server_dir)
+    print("Saved .mcserver/state.json")
 
     return 0
 
@@ -251,6 +298,21 @@ def cmd_config_set_api_key(args: argparse.Namespace) -> int:
     cfg.curseforge_api_key = api_key
     cfg.save()
     print(f"Saved CurseForge API key to {config_path()}")
+    return 0
+
+
+def cmd_config_show(args: argparse.Namespace) -> int:
+    cfg = AppConfig.load()
+    print(f"configPath={config_path()}")
+    print(f"curseforgeApiKey={mask_secret(cfg.curseforge_api_key)}")
+    return 0
+
+
+def cmd_config_unset_api_key(args: argparse.Namespace) -> int:
+    cfg = AppConfig.load()
+    cfg.curseforge_api_key = None
+    cfg.save()
+    print(f"Cleared CurseForge API key in {config_path()}")
     return 0
 
 
@@ -334,6 +396,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_cfg_path = cfg_sub.add_parser("path", help="Print the config file path")
     p_cfg_path.set_defaults(func=cmd_config_path)
+
+    p_cfg_show = cfg_sub.add_parser("show", help="Show current config (secrets masked)")
+    p_cfg_show.set_defaults(func=cmd_config_show)
+
+    p_cfg_unset = cfg_sub.add_parser(
+        "unset-api-key", help="Remove saved CurseForge API key"
+    )
+    p_cfg_unset.set_defaults(func=cmd_config_unset_api_key)
 
     return parser
 

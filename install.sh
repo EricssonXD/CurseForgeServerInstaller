@@ -45,7 +45,7 @@ else
 fi
 
 echo
-echo "Next: set your CurseForge API key:" 
-echo "  export CURSEFORGE_API_KEY=..."
+echo "Next: save your CurseForge API key:" 
+echo "  mcserver config set-api-key"
 echo "Try:" 
 echo "  mcserver --help"

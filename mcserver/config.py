@@ -40,3 +40,11 @@ class AppConfig:
         except Exception:
             # Best-effort on platforms that may not support chmod
             pass
+
+
+def mask_secret(value: Optional[str]) -> str:
+    if not value:
+        return "(not set)"
+    if len(value) <= 6:
+        return "***"
+    return value[:2] + "***" + value[-2:]

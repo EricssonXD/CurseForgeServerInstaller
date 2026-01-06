@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import os
 import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 from urllib.error import HTTPError
 
-from .errors import MissingApiKeyError, UserFacingError
+from .errors import InvalidApiKeyError, MissingApiKeyError, UserFacingError
 from .config import AppConfig
 from .http_client import http_get_json
 
@@ -26,12 +25,10 @@ class CurseForgeClient:
 
     def __init__(self, api_key: Optional[str] = None):
         cfg = AppConfig.load()
-        self.api_key = (
-            api_key or os.environ.get("CURSEFORGE_API_KEY") or cfg.curseforge_api_key
-        )
+        self.api_key = api_key or cfg.curseforge_api_key
         if not self.api_key:
             raise MissingApiKeyError(
-                "Missing CurseForge API key. Set CURSEFORGE_API_KEY (quote it!) or run 'mcserver config set-api-key'."
+                "Missing CurseForge API key. Run: mcserver config set-api-key"
             )
 
     def _wrap_http_errors(self, fn, *args, **kwargs):
@@ -39,11 +36,9 @@ class CurseForgeClient:
             return fn(*args, **kwargs)
         except HTTPError as e:
             if e.code == 403:
-                raise UserFacingError(
-                    "CurseForge API returned 403 Forbidden. Your API key is missing/invalid. "
-                    "If you exported it in bash, make sure it is quoted, e.g.\n"
-                    "  export CURSEFORGE_API_KEY='...'\n"
-                    "Or persist it with: mcserver config set-api-key '...'."
+                raise InvalidApiKeyError(
+                    "CurseForge API returned 403 Forbidden (API key invalid). "
+                    "Update it with: mcserver config set-api-key"
                 )
             raise UserFacingError(
                 f"CurseForge API request failed: HTTP {e.code} {e.reason}"

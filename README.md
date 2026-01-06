@@ -19,12 +19,11 @@ This repo is evolving into a single CLI tool to install and update CurseForge-ba
 ## Next implementation steps (suggested)
 - Convert `mcserver-installer/` into a real Python package (hyphen-free name)
 - Add a `pyproject.toml` console script entrypoint (e.g. `mcserver`)
-- Replace hardcoded API key with `CURSEFORGE_API_KEY` env var or user config
+- Ensure API key is stored via `mcserver config set-api-key`
 - Port `mc-update` logic into Python (or call the script from the CLI initially)
 
 ## Install the CLI (local)
-- Run: `./install.sh`
+- Run: `chmod +x install.sh && ./install.sh`
 - Ensure `~/.local/bin` is on your `PATH` (the script will tell you if it isn't)
-- Set API key: `export CURSEFORGE_API_KEY=...`
-- Or save it permanently: `mcserver config set-api-key '...'`
+- Save API key permanently: `mcserver config set-api-key` (prompts securely)
 - Then you can run: `mcserver --help`

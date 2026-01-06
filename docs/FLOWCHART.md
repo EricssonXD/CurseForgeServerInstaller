@@ -33,7 +33,7 @@ flowchart TD
   K1 --> L
 
   L --> M{CurseForge API key available?}
-  M -->|No| M1[Fail: tell user to set CURSEFORGE_API_KEY or config] --> Z
+  M -->|No| M1[Fail: ask user to save API key via mcserver config] --> Z
   M -->|Yes| N[Choose server pack file]
 
   N --> O[Resolve server pack ZIP download URL]
