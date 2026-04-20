@@ -58,4 +58,31 @@ fi
 chmod +x "${INSTALL_DIR}/cfs"
 
 echo "cfs ${TAG} installed to ${INSTALL_DIR}/cfs"
+
+# Set up shell completion
+SHELL_NAME="$(basename "$SHELL" 2>/dev/null || echo "")"
+case "$SHELL_NAME" in
+    bash)
+        COMP_LINE='eval "$(cfs completion bash)"'
+        RC="$HOME/.bashrc"
+        if [ -f "$RC" ] && ! grep -qF 'cfs completion bash' "$RC"; then
+            echo "$COMP_LINE" >> "$RC"
+            echo "Added bash completion to $RC"
+        fi
+        ;;
+    zsh)
+        COMP_LINE='eval "$(cfs completion zsh)"'
+        RC="$HOME/.zshrc"
+        if [ -f "$RC" ] && ! grep -qF 'cfs completion zsh' "$RC"; then
+            echo "$COMP_LINE" >> "$RC"
+            echo "Added zsh completion to $RC"
+        fi
+        ;;
+    fish)
+        COMP_DIR="$HOME/.config/fish/completions"
+        mkdir -p "$COMP_DIR"
+        cfs completion fish > "$COMP_DIR/cfs.fish"
+        echo "Added fish completion to $COMP_DIR/cfs.fish"
+        ;;
+esac
 echo "Run 'cfs --help' to get started"
