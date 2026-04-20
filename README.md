@@ -5,6 +5,14 @@ Written in Go with [Cobra](https://github.com/spf13/cobra). Single binary, no de
 
 ## Install
 
+### One-liner (no Go required)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/EricssonXD/CurseForgeServerInstaller/master/install-cfs.sh | sh
+```
+
+Custom install directory: `CFS_INSTALL_DIR=~/.local/bin curl -fsSL ... | sh`
+
 ### From source
 
 ```bash
