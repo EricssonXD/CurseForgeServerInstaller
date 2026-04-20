@@ -12,3 +12,6 @@ wheels/
 test
 test.ipynb
 reference
+
+# Go binary
+/cfs
