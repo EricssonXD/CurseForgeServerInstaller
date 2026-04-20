@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	applyDir string
+	applyDir       string
+	applyAcceptEULA bool
 )
 
 var applyCmd = &cobra.Command{
@@ -98,6 +99,10 @@ world data, server.properties, and other server-specific files.`,
 			return fmt.Errorf("update failed: %w", err)
 		}
 
+		if applyAcceptEULA {
+			os.WriteFile(filepath.Join(dir, "eula.txt"), []byte("eula=true\n"), 0o644)
+		}
+
 		fmt.Printf("--- Update complete for %s! ---\n", filepath.Base(dir))
 		return nil
 	},
@@ -105,5 +110,6 @@ world data, server.properties, and other server-specific files.`,
 
 func init() {
 	applyCmd.Flags().StringVarP(&applyDir, "dir", "d", ".", "Server directory")
+	applyCmd.Flags().BoolVar(&applyAcceptEULA, "accept-eula", false, "Write eula.txt with eula=true")
 	rootCmd.AddCommand(applyCmd)
 }
