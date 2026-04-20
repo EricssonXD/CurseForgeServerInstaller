@@ -63,6 +63,7 @@ cfs update --dir ./my-server --check-only
 | `cfs cf resolve <URL>` | Resolve a CurseForge URL to a pack ID |
 | `cfs cf files <PACK_ID>` | List available files for a modpack |
 | `cfs cf download-url <PACK_ID>` | Get direct download URL for a server pack |
+| `cfs apply <URL>` | Apply a server pack ZIP from a direct URL (no API key needed) |
 
 Run `cfs --help` or `cfs <command> --help` for full flag details.
 
