@@ -14,6 +14,7 @@ var (
 	updateUseSaved   bool
 	updateUseArg     bool
 	updateNoPrompt   bool
+	updateDryRun     bool
 )
 
 var updateCmd = &cobra.Command{
@@ -28,7 +29,7 @@ of --check-only to see if an update is available without applying it.`,
 		if len(args) > 0 {
 			source = args[0]
 		}
-		err := installOrUpdate(serverDir, source, updateFileID, updateAcceptEULA, updateUseSaved, updateUseArg, updateNoPrompt, updateCheckOnly)
+		err := installOrUpdate(serverDir, source, updateFileID, updateAcceptEULA, updateUseSaved, updateUseArg, updateNoPrompt, updateCheckOnly, updateDryRun)
 		if err != nil {
 			return handleError(cmd, err)
 		}
@@ -44,4 +45,5 @@ func init() {
 	updateCmd.Flags().BoolVar(&updateUseSaved, "use-saved", false, "On pack ID mismatch, prefer saved ID")
 	updateCmd.Flags().BoolVar(&updateUseArg, "use-arg", false, "On pack ID mismatch, prefer argument ID")
 	updateCmd.Flags().BoolVar(&updateNoPrompt, "no-prompt", false, "Fail on ambiguity instead of prompting")
+	updateCmd.Flags().BoolVar(&updateDryRun, "dry-run", false, "Show what would be done without making changes")
 }

@@ -13,6 +13,7 @@ var (
 	installUseSaved   bool
 	installUseArg     bool
 	installNoPrompt   bool
+	installDryRun     bool
 )
 
 var installCmd = &cobra.Command{
@@ -30,7 +31,7 @@ If omitted, reads the saved pack ID from .mcserver/state.json.`,
 		if len(args) > 0 {
 			source = args[0]
 		}
-		err := installOrUpdate(serverDir, source, installFileID, installAcceptEULA, installUseSaved, installUseArg, installNoPrompt, false)
+		err := installOrUpdate(serverDir, source, installFileID, installAcceptEULA, installUseSaved, installUseArg, installNoPrompt, false, installDryRun)
 		if err != nil {
 			return handleError(cmd, err)
 		}
@@ -45,4 +46,5 @@ func init() {
 	installCmd.Flags().BoolVar(&installUseSaved, "use-saved", false, "On pack ID mismatch, prefer saved ID")
 	installCmd.Flags().BoolVar(&installUseArg, "use-arg", false, "On pack ID mismatch, prefer argument ID")
 	installCmd.Flags().BoolVar(&installNoPrompt, "no-prompt", false, "Fail on ambiguity instead of prompting")
+	installCmd.Flags().BoolVar(&installDryRun, "dry-run", false, "Show what would be done without making changes")
 }

@@ -14,8 +14,9 @@ import (
 )
 
 var (
-	applyDir       string
+	applyDir        string
 	applyAcceptEULA bool
+	applyDryRun     bool
 )
 
 var applyCmd = &cobra.Command{
@@ -52,6 +53,17 @@ world data, server.properties, and other server-specific files.`,
 		// Safety check
 		if _, err := os.Stat(filepath.Join(dir, "server.properties")); err != nil {
 			return fmt.Errorf("'server.properties' not found in %s — are you in the right folder?", dir)
+		}
+
+		if applyDryRun {
+			ui.Info("[dry-run] Would perform the following:")
+			ui.Infof("  Target dir: %s", dir)
+			ui.Infof("  Download:   %s", rawURL)
+			ui.Info("  Extract, backup existing dirs, replace modpack folders")
+			if applyAcceptEULA {
+				ui.Info("  Write eula.txt with eula=true")
+			}
+			return nil
 		}
 
 		// Download to temp file
@@ -112,5 +124,6 @@ world data, server.properties, and other server-specific files.`,
 func init() {
 	applyCmd.Flags().StringVarP(&applyDir, "dir", "d", ".", "Server directory")
 	applyCmd.Flags().BoolVar(&applyAcceptEULA, "accept-eula", false, "Write eula.txt with eula=true")
+	applyCmd.Flags().BoolVar(&applyDryRun, "dry-run", false, "Show what would be done without making changes")
 	rootCmd.AddCommand(applyCmd)
 }

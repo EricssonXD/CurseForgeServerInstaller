@@ -210,7 +210,7 @@ func resolvePackID(
 func installOrUpdate(
 	serverDir, source string,
 	fileID int,
-	acceptEULA, useSaved, useArg, noPrompt, checkOnly bool,
+	acceptEULA, useSaved, useArg, noPrompt, checkOnly, dryRun bool,
 ) error {
 	cf, err := getCFClient(true)
 	if err != nil {
@@ -250,6 +250,18 @@ func installOrUpdate(
 			return nil
 		}
 		fmt.Printf("Update available: installed=%v latest=%d\n", installed, serverFileID)
+		return nil
+	}
+
+	if dryRun {
+		ui.Info("[dry-run] Would perform the following:")
+		ui.Infof("  Mode:        %s", mode)
+		ui.Infof("  Target dir:  %s", serverDir)
+		ui.Infof("  Server pack: %s (fileId=%d)", displayName, serverFileID)
+		ui.Infof("  Download:    %s", url)
+		if acceptEULA {
+			ui.Info("  Write eula.txt with eula=true")
+		}
 		return nil
 	}
 
