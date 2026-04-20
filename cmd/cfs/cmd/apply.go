@@ -25,7 +25,25 @@ folders (mods, config, scripts, kubejs, libraries, defaultconfigs) while preserv
 world data, server.properties, and other server-specific files.`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		url := args[0]
+		rawURL := args[0]
+
+		// If it looks like a CurseForge modpack page URL, try to resolve the download URL
+		if strings.Contains(rawURL, "curseforge.com/minecraft/modpacks/") {
+			cf, err := getCFClient(true)
+			if err != nil {
+				return fmt.Errorf("CurseForge modpack URL detected but API key is needed to resolve it.\nUse 'cfs install %s' instead, or provide a direct download URL", rawURL)
+			}
+			packID, err := cf.ResolvePackIDFromURL(rawURL)
+			if err != nil {
+				return fmt.Errorf("could not resolve modpack URL: %w", err)
+			}
+			dlURL, _, _, err := cf.ResolveServerPackDownload(packID, nil)
+			if err != nil {
+				return fmt.Errorf("could not resolve download URL: %w", err)
+			}
+			rawURL = dlURL
+			fmt.Printf("Resolved download URL from CurseForge page\n")
+		}
 
 		dir, _ := filepath.Abs(applyDir)
 
@@ -43,7 +61,7 @@ world data, server.properties, and other server-specific files.`,
 
 		zipPath := filepath.Join(tmpDir, "update.zip")
 		fmt.Println("1. Downloading server pack...")
-		if err := download.DownloadTo(url, zipPath, "server pack"); err != nil {
+		if err := download.DownloadTo(rawURL, zipPath, "server pack"); err != nil {
 			return fmt.Errorf("download failed: %w", err)
 		}
 
