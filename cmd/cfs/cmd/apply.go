@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/ericsson/curseforge-server-installer/internal/download"
 	"github.com/ericsson/curseforge-server-installer/internal/fs"
@@ -55,9 +57,26 @@ world data, server.properties, and other server-specific files.`,
 		// Detect pack root
 		packRoot := fs.DetectPackRoot(extractDir)
 
+		// Backup before replacing
+		ts := strings.ReplaceAll(strings.ReplaceAll(time.Now().UTC().Format("20060102T150405Z"), ":", ""), "-", "")
+		backupDir, backupErr := fs.BackupDirs(dir, ts)
+		if backupErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: backup failed: %v\n", backupErr)
+		} else {
+			fmt.Printf("   Backup saved to %s\n", backupDir)
+		}
+
 		// Apply update
 		fmt.Println("3. Replacing modpack folders...")
 		if err := fs.UpdateFromPackRoot(packRoot, dir); err != nil {
+			if backupDir != "" {
+				fmt.Fprintln(os.Stderr, "Update failed, restoring backup...")
+				if restoreErr := fs.RestoreBackup(backupDir, dir); restoreErr != nil {
+					fmt.Fprintf(os.Stderr, "Restore failed: %v\n", restoreErr)
+				} else {
+					fmt.Fprintln(os.Stderr, "Backup restored successfully.")
+				}
+			}
 			return fmt.Errorf("update failed: %w", err)
 		}
 

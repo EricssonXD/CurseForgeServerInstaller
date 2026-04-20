@@ -179,3 +179,41 @@ func copyFile(src, dst string) error {
 	}
 	return nil
 }
+
+// BackupDirs creates a timestamped backup of the replaceable directories before an update.
+// Returns the backup directory path. Only backs up dirs that exist.
+func BackupDirs(serverDir string, timestamp string) (string, error) {
+	backupDir := filepath.Join(serverDir, ".mcserver", "backups", timestamp)
+	if err := os.MkdirAll(backupDir, 0o755); err != nil {
+		return "", fmt.Errorf("creating backup dir: %w", err)
+	}
+	for _, d := range ReplaceDirs {
+		src := filepath.Join(serverDir, d)
+		if _, err := os.Stat(src); err != nil {
+			continue
+		}
+		if err := copyDir(src, filepath.Join(backupDir, d)); err != nil {
+			return "", fmt.Errorf("backing up %s: %w", d, err)
+		}
+	}
+	return backupDir, nil
+}
+
+// RestoreBackup restores directories from a backup, used on failure rollback.
+func RestoreBackup(backupDir, serverDir string) error {
+	entries, err := os.ReadDir(backupDir)
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		dst := filepath.Join(serverDir, entry.Name())
+		os.RemoveAll(dst)
+		if err := copyDir(filepath.Join(backupDir, entry.Name()), dst); err != nil {
+			return fmt.Errorf("restoring %s: %w", entry.Name(), err)
+		}
+	}
+	return nil
+}

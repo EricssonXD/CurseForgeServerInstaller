@@ -275,8 +275,26 @@ func installOrUpdate(
 	fmt.Printf("Detected pack root: %s\n", packRoot)
 
 	if modeUpdate {
+		// Backup before update
+		ts := state.UTCNowISO()
+		ts = strings.ReplaceAll(strings.ReplaceAll(ts, ":", ""), "-", "")
+		backupDir, err := fs.BackupDirs(serverDir, ts)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: backup failed: %v\n", err)
+		} else {
+			fmt.Printf("Backup saved to %s\n", backupDir)
+		}
+
 		fmt.Println("Applying update (replacing modpack folders, preserving world/server config)...")
 		if err := fs.UpdateFromPackRoot(packRoot, serverDir); err != nil {
+			if backupDir != "" {
+				fmt.Fprintln(os.Stderr, "Update failed, restoring backup...")
+				if restoreErr := fs.RestoreBackup(backupDir, serverDir); restoreErr != nil {
+					fmt.Fprintf(os.Stderr, "Restore failed: %v\n", restoreErr)
+				} else {
+					fmt.Fprintln(os.Stderr, "Backup restored successfully.")
+				}
+			}
 			return err
 		}
 		fmt.Println("Update complete.")
