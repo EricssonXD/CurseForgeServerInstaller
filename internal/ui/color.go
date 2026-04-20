@@ -69,3 +69,6 @@ func Errorf(format string, a ...any) { Error(fmt.Sprintf(format, a...)) }
 
 // Stepf formats and prints a bold step.
 func Stepf(format string, a ...any) { Step(fmt.Sprintf(format, a...)) }
+
+// Dimf formats and prints a dimmed message.
+func Dimf(format string, a ...any) { Dim(fmt.Sprintf(format, a...)) }

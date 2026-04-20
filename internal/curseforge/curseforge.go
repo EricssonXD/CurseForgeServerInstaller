@@ -82,6 +82,19 @@ func (c *Client) SearchModpacks(query string, gameVersion string, pageSize int) 
 	return results, nil
 }
 
+// GetModpack fetches details for a single modpack by ID.
+func (c *Client) GetModpack(packID int) (map[string]any, error) {
+	payload, err := mchttp.GetJSON(fmt.Sprintf("%s/v1/mods/%d", baseURL, packID), c.headers(), nil)
+	if err != nil {
+		return nil, c.wrapHTTPError(err)
+	}
+	data, _ := payload["data"].(map[string]any)
+	if data == nil {
+		return nil, mcerrors.NewUserFacingError(fmt.Sprintf("Modpack %d not found.", packID))
+	}
+	return data, nil
+}
+
 // ResolvePackIDFromURL extracts a pack ID from a CurseForge modpack URL.
 func (c *Client) ResolvePackIDFromURL(url string) (int, error) {
 	re := regexp.MustCompile(`/modpacks/([^/?#]+)`)
