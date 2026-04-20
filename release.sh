@@ -51,7 +51,17 @@ git commit -m "release: ${TAG}"
 git tag "$TAG"
 
 echo ""
-echo "Created tag ${TAG}. Push with:"
-echo "  git push && git push origin ${TAG}"
-echo ""
-echo "This will trigger the GitHub Actions release workflow."
+echo "Created tag ${TAG}."
+
+printf "Push now? (y/n) "
+read -r REPLY
+case "$REPLY" in
+    [yY]|[yY][eE][sS])
+        git push && git push origin "${TAG}"
+        echo "Pushed. GitHub Actions will build the release."
+        ;;
+    *)
+        echo "To push later:"
+        echo "  git push && git push origin ${TAG}"
+        ;;
+esac
