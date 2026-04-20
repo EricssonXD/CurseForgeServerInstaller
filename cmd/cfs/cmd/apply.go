@@ -25,11 +25,7 @@ world data, server.properties, and other server-specific files.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		url := args[0]
 
-		dir := applyDir
-		if dir == "" {
-			dir = "."
-		}
-		dir, _ = filepath.Abs(dir)
+		dir, _ := filepath.Abs(applyDir)
 
 		// Safety check
 		if _, err := os.Stat(filepath.Join(dir, "server.properties")); err != nil {
@@ -71,6 +67,6 @@ world data, server.properties, and other server-specific files.`,
 }
 
 func init() {
-	applyCmd.Flags().StringVarP(&applyDir, "dir", "d", "", "Server directory (default: current directory)")
+	applyCmd.Flags().StringVarP(&applyDir, "dir", "d", ".", "Server directory")
 	rootCmd.AddCommand(applyCmd)
 }
