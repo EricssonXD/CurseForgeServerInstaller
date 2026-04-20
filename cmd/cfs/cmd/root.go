@@ -16,10 +16,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Version is set at build time via -ldflags.
+var Version = "dev"
+
 var rootCmd = &cobra.Command{
-	Use:   "cfs",
-	Short: "CurseForge Server Installer",
-	Long:  "A CLI tool for installing and updating CurseForge Minecraft server packs.",
+	Use:     "cfs",
+	Short:   "CurseForge Server Installer",
+	Long:    "A CLI tool for installing and updating CurseForge Minecraft server packs.",
+	Version: Version,
 	SilenceUsage: true,
 }
 
