@@ -1,16 +1,18 @@
 package cmd
 
 import (
+	"path/filepath"
+
 	"github.com/spf13/cobra"
 )
 
 var (
-	installDir       string
-	installFileID    int
+	installDir        string
+	installFileID     int
 	installAcceptEULA bool
-	installUseSaved  bool
-	installUseArg    bool
-	installNoPrompt  bool
+	installUseSaved   bool
+	installUseArg     bool
+	installNoPrompt   bool
 )
 
 var installCmd = &cobra.Command{
@@ -23,18 +25,16 @@ SOURCE can be a modpack ID (digits) or a CurseForge modpack URL.
 If omitted, reads the saved pack ID from .mcserver/state.json.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		positional := args
-		flags := map[string]string{
-			"dir":     installDir,
-			"file-id": intToStr(installFileID),
+		serverDir, _ := filepath.Abs(installDir)
+		var source string
+		if len(args) > 0 {
+			source = args[0]
 		}
-		boolFlags := map[string]bool{
-			"accept-eula": installAcceptEULA,
-			"use-saved":   installUseSaved,
-			"use-arg":     installUseArg,
-			"no-prompt":   installNoPrompt,
+		err := installOrUpdate(serverDir, source, installFileID, installAcceptEULA, installUseSaved, installUseArg, installNoPrompt, false)
+		if err != nil {
+			return handleError(cmd, err)
 		}
-		return runPython(buildPythonArgs("install", positional, flags, boolFlags))
+		return nil
 	},
 }
 

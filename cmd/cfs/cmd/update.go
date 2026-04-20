@@ -1,17 +1,19 @@
 package cmd
 
 import (
+	"path/filepath"
+
 	"github.com/spf13/cobra"
 )
 
 var (
-	updateDir       string
-	updateFileID    int
+	updateDir        string
+	updateFileID     int
 	updateAcceptEULA bool
-	updateCheckOnly bool
-	updateUseSaved  bool
-	updateUseArg    bool
-	updateNoPrompt  bool
+	updateCheckOnly  bool
+	updateUseSaved   bool
+	updateUseArg     bool
+	updateNoPrompt   bool
 )
 
 var updateCmd = &cobra.Command{
@@ -21,19 +23,16 @@ var updateCmd = &cobra.Command{
 of --check-only to see if an update is available without applying it.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		positional := args
-		flags := map[string]string{
-			"dir":     updateDir,
-			"file-id": intToStr(updateFileID),
+		serverDir, _ := filepath.Abs(updateDir)
+		var source string
+		if len(args) > 0 {
+			source = args[0]
 		}
-		boolFlags := map[string]bool{
-			"accept-eula": updateAcceptEULA,
-			"check-only":  updateCheckOnly,
-			"use-saved":   updateUseSaved,
-			"use-arg":     updateUseArg,
-			"no-prompt":   updateNoPrompt,
+		err := installOrUpdate(serverDir, source, updateFileID, updateAcceptEULA, updateUseSaved, updateUseArg, updateNoPrompt, updateCheckOnly)
+		if err != nil {
+			return handleError(cmd, err)
 		}
-		return runPython(buildPythonArgs("update", positional, flags, boolFlags))
+		return nil
 	},
 }
 

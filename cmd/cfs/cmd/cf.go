@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/spf13/cobra"
 )
 
@@ -17,7 +19,16 @@ var cfResolveCmd = &cobra.Command{
 	Short: "Resolve a CurseForge modpack URL to a pack ID",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return runPython(buildCfPythonArgs("resolve", args, nil, nil))
+		cf, err := getCFClient(true)
+		if err != nil {
+			return handleError(cmd, err)
+		}
+		packID, err := cf.ResolvePackIDFromURL(args[0])
+		if err != nil {
+			return handleError(cmd, err)
+		}
+		fmt.Println(packID)
+		return nil
 	},
 }
 
@@ -33,11 +44,20 @@ var cfSearchCmd = &cobra.Command{
 	Short: "Search CurseForge modpacks",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		flags := map[string]string{
-			"game-version": cfSearchGameVersion,
-			"limit":        intToStr(cfSearchLimit),
+		cf, err := getCFClient(true)
+		if err != nil {
+			return handleError(cmd, err)
 		}
-		return runPython(buildCfPythonArgs("search", args, flags, nil))
+		results, err := cf.SearchModpacks(args[0], cfSearchGameVersion, cfSearchLimit)
+		if err != nil {
+			return handleError(cmd, err)
+		}
+		for _, item := range results {
+			id := item["id"]
+			name := item["name"]
+			fmt.Printf("%d\t%v\n", int(id.(float64)), name)
+		}
+		return nil
 	},
 }
 
@@ -53,13 +73,33 @@ var cfFilesCmd = &cobra.Command{
 	Short: "List files for a CurseForge modpack",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		flags := map[string]string{
-			"limit": intToStr(cfFilesLimit),
+		cf, err := getCFClient(true)
+		if err != nil {
+			return handleError(cmd, err)
 		}
-		boolFlags := map[string]bool{
-			"server-only": cfFilesServerOnly,
+		var packID int
+		fmt.Sscanf(args[0], "%d", &packID)
+		files, err := cf.ListFiles(packID)
+		if err != nil {
+			return handleError(cmd, err)
 		}
-		return runPython(buildCfPythonArgs("files", args, flags, boolFlags))
+		count := 0
+		for _, f := range files {
+			if count >= cfFilesLimit {
+				break
+			}
+			if cfFilesServerOnly && !f.IsServerPack && f.ServerPackFileID == nil {
+				continue
+			}
+			spfID := 0
+			if f.ServerPackFileID != nil {
+				spfID = *f.ServerPackFileID
+			}
+			fmt.Printf("%d\t%s\t%s\tserverPack=%v\tserverPackFileId=%d\n",
+				f.ID, f.FileDate, f.DisplayName, f.IsServerPack, spfID)
+			count++
+		}
+		return nil
 	},
 }
 
@@ -75,13 +115,25 @@ var cfDlCmd = &cobra.Command{
 	Short: "Resolve direct download URL for a server pack",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		flags := map[string]string{
-			"file-id": intToStr(cfDlFileID),
+		cf, err := getCFClient(true)
+		if err != nil {
+			return handleError(cmd, err)
 		}
-		boolFlags := map[string]bool{
-			"verbose": cfDlVerbose,
+		var packID int
+		fmt.Sscanf(args[0], "%d", &packID)
+		var fid *int
+		if cfDlFileID != 0 {
+			fid = &cfDlFileID
 		}
-		return runPython(buildCfPythonArgs("download-url", args, flags, boolFlags))
+		url, serverFileID, displayName, err := cf.ResolveServerPackDownload(packID, fid)
+		if err != nil {
+			return handleError(cmd, err)
+		}
+		if cfDlVerbose {
+			fmt.Printf("serverPackFileId=%d\tdisplayName=%s\n", serverFileID, displayName)
+		}
+		fmt.Println(url)
+		return nil
 	},
 }
 
