@@ -13,6 +13,7 @@ import (
 	mcerrors "github.com/ericsson/curseforge-server-installer/internal/errors"
 	"github.com/ericsson/curseforge-server-installer/internal/fs"
 	"github.com/ericsson/curseforge-server-installer/internal/state"
+	"github.com/ericsson/curseforge-server-installer/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -280,30 +281,30 @@ func installOrUpdate(
 		ts = strings.ReplaceAll(strings.ReplaceAll(ts, ":", ""), "-", "")
 		backupDir, err := fs.BackupDirs(serverDir, ts)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: backup failed: %v\n", err)
-		} else {
-			fmt.Printf("Backup saved to %s\n", backupDir)
+		ui.Warnf("backup failed: %v", err)
+			} else {
+				ui.Infof("Backup saved to %s", backupDir)
 		}
 
-		fmt.Println("Applying update (replacing modpack folders, preserving world/server config)...")
+		ui.Step("Applying update (replacing modpack folders, preserving world/server config)...")
 		if err := fs.UpdateFromPackRoot(packRoot, serverDir); err != nil {
 			if backupDir != "" {
-				fmt.Fprintln(os.Stderr, "Update failed, restoring backup...")
+				ui.Error("Update failed, restoring backup...")
 				if restoreErr := fs.RestoreBackup(backupDir, serverDir); restoreErr != nil {
-					fmt.Fprintf(os.Stderr, "Restore failed: %v\n", restoreErr)
+					ui.Errorf("Restore failed: %v", restoreErr)
 				} else {
-					fmt.Fprintln(os.Stderr, "Backup restored successfully.")
+					ui.Success("Backup restored successfully.")
 				}
 			}
 			return err
 		}
-		fmt.Println("Update complete.")
+		ui.Success("Update complete.")
 	} else {
-		fmt.Println("Installing into target directory...")
+		ui.Step("Installing into target directory...")
 		if err := fs.CopyTreeContents(packRoot, serverDir); err != nil {
 			return err
 		}
-		fmt.Println("Install complete.")
+		ui.Success("Install complete.")
 	}
 
 	if acceptEULA {
@@ -322,14 +323,14 @@ func installOrUpdate(
 	if err := newState.Save(serverDir); err != nil {
 		return err
 	}
-	fmt.Println("Saved .mcserver/state.json")
+	ui.Dim("Saved .mcserver/state.json")
 	return nil
 }
 
 // handleError prints user-facing errors to stderr and exits with code 2.
 func handleError(cmd *cobra.Command, err error) error {
 	if mcerrors.IsUserFacing(err) {
-		fmt.Fprintln(os.Stderr, err.Error())
+		ui.Error(err.Error())
 		os.Exit(2)
 	}
 	return err

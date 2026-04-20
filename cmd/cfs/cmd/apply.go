@@ -9,6 +9,7 @@ import (
 
 	"github.com/ericsson/curseforge-server-installer/internal/download"
 	"github.com/ericsson/curseforge-server-installer/internal/fs"
+	"github.com/ericsson/curseforge-server-installer/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -43,7 +44,7 @@ world data, server.properties, and other server-specific files.`,
 				return fmt.Errorf("could not resolve download URL: %w", err)
 			}
 			rawURL = dlURL
-			fmt.Printf("Resolved download URL from CurseForge page\n")
+			ui.Info("Resolved download URL from CurseForge page")
 		}
 
 		dir, _ := filepath.Abs(applyDir)
@@ -61,14 +62,14 @@ world data, server.properties, and other server-specific files.`,
 		defer os.RemoveAll(tmpDir)
 
 		zipPath := filepath.Join(tmpDir, "update.zip")
-		fmt.Println("1. Downloading server pack...")
+		ui.Step("1. Downloading server pack...")
 		if err := download.DownloadTo(rawURL, zipPath, "server pack"); err != nil {
 			return fmt.Errorf("download failed: %w", err)
 		}
 
 		// Extract
 		extractDir := filepath.Join(tmpDir, "extracted")
-		fmt.Println("2. Extracting files...")
+		ui.Step("2. Extracting files...")
 		if err := fs.ExtractZip(zipPath, extractDir); err != nil {
 			return fmt.Errorf("extraction failed: %w", err)
 		}
@@ -80,20 +81,20 @@ world data, server.properties, and other server-specific files.`,
 		ts := strings.ReplaceAll(strings.ReplaceAll(time.Now().UTC().Format("20060102T150405Z"), ":", ""), "-", "")
 		backupDir, backupErr := fs.BackupDirs(dir, ts)
 		if backupErr != nil {
-			fmt.Fprintf(os.Stderr, "Warning: backup failed: %v\n", backupErr)
+			ui.Warnf("backup failed: %v", backupErr)
 		} else {
-			fmt.Printf("   Backup saved to %s\n", backupDir)
+			ui.Infof("Backup saved to %s", backupDir)
 		}
 
 		// Apply update
-		fmt.Println("3. Replacing modpack folders...")
+		ui.Step("3. Replacing modpack folders...")
 		if err := fs.UpdateFromPackRoot(packRoot, dir); err != nil {
 			if backupDir != "" {
-				fmt.Fprintln(os.Stderr, "Update failed, restoring backup...")
+				ui.Error("Update failed, restoring backup...")
 				if restoreErr := fs.RestoreBackup(backupDir, dir); restoreErr != nil {
-					fmt.Fprintf(os.Stderr, "Restore failed: %v\n", restoreErr)
+					ui.Errorf("Restore failed: %v", restoreErr)
 				} else {
-					fmt.Fprintln(os.Stderr, "Backup restored successfully.")
+					ui.Success("Backup restored successfully.")
 				}
 			}
 			return fmt.Errorf("update failed: %w", err)
@@ -103,7 +104,7 @@ world data, server.properties, and other server-specific files.`,
 			os.WriteFile(filepath.Join(dir, "eula.txt"), []byte("eula=true\n"), 0o644)
 		}
 
-		fmt.Printf("--- Update complete for %s! ---\n", filepath.Base(dir))
+		ui.Successf("Update complete for %s!", filepath.Base(dir))
 		return nil
 	},
 }
